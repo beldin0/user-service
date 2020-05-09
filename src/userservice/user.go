@@ -2,6 +2,7 @@ package userservice
 
 import "strings"
 
+// User represents a user
 type User struct {
 	Firstname string `db:"first_name"`
 	Lastname  string `db:"last_name"`

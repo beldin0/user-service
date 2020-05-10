@@ -42,3 +42,15 @@ func (s *Service) Modify(o *SearchOptions, u User) error {
 	_, err = s.db.NamedExec(sqlModify+where, u.insert())
 	return err
 }
+
+// Delete deletes a users details based on the provided SearchOptions
+// The searchoptions must include either an email address or a nickname and country
+// Search terms must match exactly the entries in the existing user row.
+func (s *Service) Delete(o *SearchOptions) error {
+	where, err := o.modify()
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(sqlDelete+where, nil)
+	return err
+}

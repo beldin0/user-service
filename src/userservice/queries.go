@@ -37,3 +37,5 @@ const sqlModify = `UPDATE users SET
 	password=:password,
 	email=:email,
 	country=:country`
+
+const sqlDelete = `DELETE FROM users`

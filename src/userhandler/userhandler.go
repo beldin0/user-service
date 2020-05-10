@@ -97,7 +97,17 @@ func (h *userHandler) Put(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "unimplemented", http.StatusNotImplemented)
+	search, err := buildSearch(r.URL.Query())
+	if err != nil {
+		http.Error(w, "Request error", http.StatusBadRequest)
+		return
+	}
+	err = h.service.Delete(search)
+	if err != nil {
+		http.Error(w, "error deleting user", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func buildSearch(params url.Values) (*userservice.SearchOptions, error) {

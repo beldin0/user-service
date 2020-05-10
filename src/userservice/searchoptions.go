@@ -2,6 +2,7 @@ package userservice
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -69,13 +70,13 @@ func (o *SearchOptions) modify() (string, error) {
 		return "", errors.New("required searchoptions not provided for modify")
 	}
 	_, email := o.options["email"]
-	_, nick := o.options["nickname"]
+	_, nick := o.options["nickname_lower"]
 	_, country := o.options["country"]
 	switch {
 	case email:
 	case nick && country:
 	default:
-		return "", errors.New("required searchoptions not provided for modify")
+		return "", fmt.Errorf("required searchoptions not provided for modify: provided with %v", o.options)
 	}
 	return o.whereExact(), nil
 }

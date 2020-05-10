@@ -2,6 +2,7 @@ package userservice_test
 
 import (
 	"crypto/sha256"
+	"strings"
 	"testing"
 
 	"github.com/beldin0/users/src/userservice"
@@ -178,7 +179,7 @@ func TestService_Modify(t *testing.T) {
 					Country:   "FR",
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "modify by email",
@@ -215,6 +216,80 @@ func TestService_Modify(t *testing.T) {
 			user := userservice.User{}
 			require.NoError(t, db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`))
 			require.Equal(t, tt.args.u, user)
+		})
+	}
+}
+
+func TestService_Delete(t *testing.T) {
+	tests := []struct {
+		name     string
+		o        *userservice.SearchOptions
+		wantErr  bool
+		wantUser userservice.User
+	}{
+		{
+			name:    "delete nil searchoptions",
+			o:       nil,
+			wantErr: true,
+			wantUser: userservice.User{
+				Firstname: "John",
+				Lastname:  "Smith",
+				Nickname:  "Johnny123",
+				Password:  encrypted("password"),
+				Email:     "john.smith@faceit.com",
+				Country:   "UK",
+			},
+		},
+		{
+			name:    "delete nickname only",
+			o:       userservice.Search().Nickname("johnny123"),
+			wantErr: true,
+			wantUser: userservice.User{
+				Firstname: "John",
+				Lastname:  "Smith",
+				Nickname:  "Johnny123",
+				Password:  encrypted("password"),
+				Email:     "john.smith@faceit.com",
+				Country:   "UK",
+			},
+		},
+		{
+			name:     "delete nickname & country",
+			o:        userservice.Search().Nickname("johnny123").Country("UK"),
+			wantUser: userservice.User{},
+			wantErr:  false,
+		},
+		{
+			name:     "delete by email",
+			o:        userservice.Search().Email("john.smith@faceit.com"),
+			wantUser: userservice.User{},
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			db, err := sqlx.Connect("sqlite3", ":memory:")
+			require.NoError(t, err)
+			require.NoError(t, setup(db))
+			err = userservice.New(db).Add(testUser())
+			require.NoError(t, err)
+
+			s := userservice.New(db)
+			err = s.Delete(tt.o)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+			user := userservice.User{}
+			err = db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`)
+			if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+				err = nil
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantUser, user)
 		})
 	}
 }

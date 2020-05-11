@@ -2,17 +2,19 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/beldin0/users/src/logging"
 )
 
 func gracefulShutdown(wait chan os.Signal, server *http.Server) {
+	logger := logging.NewLogger()
 	<-wait
-	log.Println("shutting down")
+	logger.Info("shutting down")
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatal("failed shutting down gracefully")
+		logger.Fatal("failed shutting down gracefully")
 	}
 }

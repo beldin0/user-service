@@ -5,6 +5,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/beldin0/users/src/logging"
 	"github.com/beldin0/users/src/userhandler"
 	"github.com/jmoiron/sqlx"
 )
@@ -23,6 +24,7 @@ func NewRouting(db *sqlx.DB) http.Handler {
 }
 
 func (h *routing) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	initialPath := r.URL.Path
 	var head string
 	head, r.URL.Path = ShiftPath(r.URL.Path)
 	handler, ok := h.handlerMap[head]
@@ -30,6 +32,7 @@ func (h *routing) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handler.ServeHTTP(w, r)
 		return
 	}
+	logging.NewLogger().Sugar().With("path", initialPath).Info("unable to route incoming request")
 	http.Error(w, "Not Found", http.StatusNotFound)
 }
 

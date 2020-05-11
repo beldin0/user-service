@@ -2,23 +2,27 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/beldin0/users/src/logging"
 	"github.com/beldin0/users/src/routing"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/kelseyhightower/envconfig"
+	_ "github.com/lib/pq"
 )
 
 const defaultPort = 8080
 
 func main() {
-	db, err := sqlx.Connect("sqlite3", ":memory:")
+	logger := logging.NewLogger()
+	var c config
+	err := envconfig.Process("", &c)
+	db, err := sqlx.Connect("postgres", c.ConnString())
 	if err != nil {
-		log.Fatal(err)
+		logger.Sugar().With("error", err).Fatal("problem connecting to database")
 	}
 	server := &http.Server{
 		Addr:    fmt.Sprint(":", defaultPort),
@@ -31,9 +35,9 @@ func main() {
 	go gracefulShutdown(quit, server)
 
 	// Start server
-	log.Println("listening on port", defaultPort)
+	logger.Sugar().With("port", defaultPort).Info("listening")
 	err = server.ListenAndServe()
 	if err != http.ErrServerClosed {
-		log.Fatal(err)
+		logger.Sugar().With("error", err).Fatal("problem with server")
 	}
 }

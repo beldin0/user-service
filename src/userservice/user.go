@@ -4,12 +4,12 @@ import "strings"
 
 // User represents a user
 type User struct {
-	Firstname string `db:"first_name"`
-	Lastname  string `db:"last_name"`
-	Nickname  string `db:"nickname"`
-	Password  string `db:"password"`
-	Email     string `db:"email"`
-	Country   string `db:"country"`
+	Firstname string `db:"first_name" json:"firstName"`
+	Lastname  string `db:"last_name" json:"lastName"`
+	Nickname  string `db:"nickname" json:"nickname"`
+	Password  string `db:"password" json:"password"`
+	Email     string `db:"email" json:"email"`
+	Country   string `db:"country" json:"country"`
 }
 
 func (u User) insert() insertUser {

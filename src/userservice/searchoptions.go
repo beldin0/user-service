@@ -49,7 +49,7 @@ func (o *SearchOptions) where() string {
 	}
 	options := []string{}
 	for field, value := range o.options {
-		options = append(options, `"`+field+`" LIKE "%`+value+`%"`)
+		options = append(options, `"`+field+`" LIKE '%`+value+`%'`)
 	}
 	return " WHERE " + strings.Join(options, " AND ")
 }
@@ -60,7 +60,7 @@ func (o *SearchOptions) whereExact() string {
 	}
 	options := []string{}
 	for field, value := range o.options {
-		options = append(options, `"`+field+`"="`+value+`"`)
+		options = append(options, `"`+field+`"='`+value+`'`)
 	}
 	return " WHERE " + strings.Join(options, " AND ")
 }

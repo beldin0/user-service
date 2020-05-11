@@ -2,6 +2,7 @@ package userhandler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -89,6 +90,13 @@ func (h *userHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = h.service.Add(user)
+	if errors.As(err, &userservice.ErrDuplicate) {
+		logging.NewLogger().Sugar().
+			With("error", err).
+			Info("duplicate user add request")
+		http.Error(w, "user already exists", http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).
@@ -96,6 +104,9 @@ func (h *userHandler) Post(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error inserting into database", http.StatusInternalServerError)
 		return
 	}
+	logging.NewLogger().Sugar().
+		With("user", user).
+		Info("user added")
 	w.WriteHeader(http.StatusCreated)
 }
 

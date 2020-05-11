@@ -1,7 +1,11 @@
 package userservice
 
 import (
+	"strings"
+
+	"github.com/beldin0/users/src/logging"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 // New returns a Service instance utilising the provided database
@@ -19,6 +23,12 @@ type Service struct {
 // Add adds a new User to the database
 func (s *Service) Add(u User) error {
 	_, err := s.db.NamedExec(sqlInsert, u.insert())
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			err = errors.Wrap(ErrDuplicate, err.Error())
+		}
+		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
+	}
 	return err
 }
 
@@ -28,6 +38,9 @@ func (s *Service) Add(u User) error {
 func (s *Service) Get(o *SearchOptions) ([]User, error) {
 	results := []User{}
 	err := s.db.Select(&results, sqlGet+o.where())
+	if err != nil {
+		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
+	}
 	return results, err
 }
 
@@ -37,9 +50,13 @@ func (s *Service) Get(o *SearchOptions) ([]User, error) {
 func (s *Service) Modify(o *SearchOptions, u User) error {
 	where, err := o.modify()
 	if err != nil {
+		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
 		return err
 	}
 	_, err = s.db.NamedExec(sqlModify+where, u.insert())
+	if err != nil {
+		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
+	}
 	return err
 }
 
@@ -49,8 +66,12 @@ func (s *Service) Modify(o *SearchOptions, u User) error {
 func (s *Service) Delete(o *SearchOptions) error {
 	where, err := o.modify()
 	if err != nil {
+		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
 		return err
 	}
 	_, err = s.db.Exec(sqlDelete+where, nil)
+	if err != nil {
+		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
+	}
 	return err
 }

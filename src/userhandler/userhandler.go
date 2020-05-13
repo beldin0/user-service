@@ -165,13 +165,10 @@ func buildSearch(params url.Values) (*userservice.SearchOptions, error) {
 		switch key {
 		case "country":
 			search.Country(params.Get(key))
-			fallthrough
 		case "email":
 			search.Email(params.Get(key))
-			fallthrough
 		case "nickname":
 			search.Nickname(params.Get(key))
-			fallthrough
 		case "name":
 			value, err := url.QueryUnescape(params.Get(key))
 			if err != nil {
@@ -182,6 +179,10 @@ func buildSearch(params url.Values) (*userservice.SearchOptions, error) {
 				return search, err
 			}
 			search.Name(names[0], names[len(names)-1])
+		default:
+			logging.NewLogger().Sugar().
+				With("query_parameter", key).
+				Info("unrecognised query parameter")
 		}
 	}
 	return search, nil

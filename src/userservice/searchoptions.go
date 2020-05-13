@@ -20,7 +20,7 @@ func Search() *SearchOptions {
 
 // Country adds the specified country to the search parameters
 func (o *SearchOptions) Country(country string) *SearchOptions {
-	o.options["country"] = country
+	o.options["country"] = strings.ToUpper(country)
 	return o
 }
 

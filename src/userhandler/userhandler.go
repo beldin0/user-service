@@ -19,6 +19,7 @@ type userHandler struct {
 // New returns a userHandler instance
 func New(db *sqlx.DB) http.Handler {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY,
 		first_name VARCHAR(50),
 		first_name_lower VARCHAR(50),
 		last_name VARCHAR(50),
@@ -26,7 +27,7 @@ func New(db *sqlx.DB) http.Handler {
 		nickname VARCHAR(30),
 		nickname_lower VARCHAR(30) UNIQUE,
 		password VARCHAR(32),
-		email VARCHAR(50) UNIQUE PRIMARY KEY,
+		email VARCHAR(50) UNIQUE,
 		country VARCHAR(3)
 	)`)
 	if err != nil {

@@ -4,6 +4,7 @@ import "strings"
 
 // User represents a user
 type User struct {
+	UserID    int    `db:"id" json:"userId"`
 	Firstname string `db:"first_name" json:"firstName"`
 	Lastname  string `db:"last_name" json:"lastName"`
 	Nickname  string `db:"nickname" json:"nickname"`

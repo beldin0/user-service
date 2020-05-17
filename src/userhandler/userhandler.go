@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/beldin0/users/src/logging"
+	"github.com/beldin0/users/src/user"
 	"github.com/beldin0/users/src/userservice"
 	"github.com/jmoiron/sqlx"
 )
@@ -92,7 +93,7 @@ func (h *userHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) Post(w http.ResponseWriter, r *http.Request) {
-	var user userservice.User
+	var user *user.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		logging.NewLogger().Sugar().
@@ -123,7 +124,7 @@ func (h *userHandler) Post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) Put(id int, w http.ResponseWriter, r *http.Request) {
-	var user userservice.User
+	user := &user.User{}
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		logging.NewLogger().Sugar().
@@ -132,7 +133,7 @@ func (h *userHandler) Put(id int, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unable to decode request body", http.StatusBadRequest)
 		return
 	}
-	err = h.service.Modify(id, user)
+	err = h.service.Modify(int32(id), user)
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).

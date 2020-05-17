@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "../user";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+	info: {
+		title: "User Service"
+        version: "0.9"
+	}
+};
+
+message UserId {
+    int32 id = 1;
+}
+
+message User {
+    int32 id = 1;
+    string firstName = 2;
+    string lastName = 3;
+    string nickname = 4;
+    string password = 5;
+    string email = 6;
+    string country = 7;
+}
+
+message UsersResponse {
+    repeated User users = 1;
+}
+
+service UserService {
+    rpc Add(User) returns (User){
+        option (google.api.http) = {
+            post: "/users"
+            body: "*"
+        };
+    }
+    rpc Search(User) returns (UsersResponse){
+        option (google.api.http) = {
+            get: "/users"
+        };
+    }
+    rpc Get(UserId) returns (User){
+        option (google.api.http) = {
+            get: "/users/{id}"
+        };
+    }
+    rpc Modify(User) returns (User){
+        option (google.api.http) = {
+            put: "/users/{id}"
+            body: "*"
+        };
+    }
+    rpc Delete(UserId) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+            delete: "/users/{id}"
+        };
+    }
+    
+}

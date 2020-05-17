@@ -1,25 +1,18 @@
 package userservice
 
-import "strings"
+import (
+	"strings"
 
-// User represents a user
-type User struct {
-	UserID    int    `db:"id" json:"userId"`
-	Firstname string `db:"first_name" json:"firstName"`
-	Lastname  string `db:"last_name" json:"lastName"`
-	Nickname  string `db:"nickname" json:"nickname"`
-	Password  string `db:"password" json:"password"`
-	Email     string `db:"email" json:"email"`
-	Country   string `db:"country" json:"country"`
-}
+	"github.com/beldin0/users/src/user"
+)
 
-func (u User) insert() insertUser {
+func toInsert(u *user.User) insertUser {
 	return insertUser{
-		UserID:         &u.UserID,
-		Firstname:      u.Firstname,
-		FirstnameLower: strings.ToLower(u.Firstname),
-		Lastname:       u.Lastname,
-		LastnameLower:  strings.ToLower(u.Lastname),
+		UserID:         &u.Id,
+		Firstname:      u.FirstName,
+		FirstnameLower: strings.ToLower(u.FirstName),
+		Lastname:       u.LastName,
+		LastnameLower:  strings.ToLower(u.LastName),
 		Nickname:       u.Nickname,
 		NicknameLower:  strings.ToLower(u.Nickname),
 		Password:       u.Password,
@@ -29,7 +22,7 @@ func (u User) insert() insertUser {
 }
 
 type insertUser struct {
-	UserID         *int   `db:"id"`
+	UserID         *int32 `db:"id"`
 	Firstname      string `db:"first_name"`
 	FirstnameLower string `db:"first_name_lower"`
 	Lastname       string `db:"last_name"`

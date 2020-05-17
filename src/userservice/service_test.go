@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/beldin0/users/src/user"
 	"github.com/beldin0/users/src/userservice"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -14,7 +15,7 @@ import (
 func TestService_Add(t *testing.T) {
 	tests := []struct {
 		name    string
-		u       userservice.User
+		u       *user.User
 		wantErr bool
 	}{
 		{
@@ -37,7 +38,7 @@ func TestService_Add(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			user := userservice.User{}
+			user := user.User{}
 			require.NoError(t, db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`))
 			require.Equal(t, tt.u, user)
 		})
@@ -53,60 +54,60 @@ func TestService_Get(t *testing.T) {
 	tests := []struct {
 		name    string
 		opts    *userservice.SearchOptions
-		want    []userservice.User
+		want    []*user.User
 		wantErr bool
 	}{
 		{
 			name:    "nil searchoptions",
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by country",
 			opts:    userservice.Search().Country("UK"),
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by nickname",
 			opts:    userservice.Search().Nickname("johnny123"),
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by partial nickname",
 			opts:    userservice.Search().Nickname("johnny"),
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by name",
 			opts:    userservice.Search().Name("john", "smith"),
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by email",
 			opts:    userservice.Search().Email("john.smith@faceit.com"),
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by partial email",
 			opts:    userservice.Search().Email("john.smith"),
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by country",
 			opts:    userservice.Search().Country("UK"),
-			want:    []userservice.User{testUser()},
+			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
 		{
 			name:    "search by country: country not found",
 			opts:    userservice.Search().Country("FR"),
-			want:    []userservice.User{},
+			want:    []*user.User{},
 			wantErr: false,
 		},
 	}
@@ -129,7 +130,7 @@ func TestService_Get(t *testing.T) {
 func TestService_Modify(t *testing.T) {
 	type args struct {
 		o *userservice.SearchOptions
-		u userservice.User
+		u *user.User
 	}
 	tests := []struct {
 		name    string
@@ -140,9 +141,9 @@ func TestService_Modify(t *testing.T) {
 			name: "modify nil searchoptions",
 			args: args{
 				o: nil,
-				u: userservice.User{
-					Firstname: "John",
-					Lastname:  "Smith",
+				u: &user.User{
+					FirstName: "John",
+					LastName:  "Smith",
 					Nickname:  "Johnny123",
 					Password:  encrypted("password"),
 					Email:     "john.smith@faceit.com",
@@ -155,9 +156,9 @@ func TestService_Modify(t *testing.T) {
 			name: "modify nickname only",
 			args: args{
 				o: userservice.Search().Nickname("johnny123"),
-				u: userservice.User{
-					Firstname: "John",
-					Lastname:  "Smith",
+				u: &user.User{
+					FirstName: "John",
+					LastName:  "Smith",
 					Nickname:  "Johnny123",
 					Password:  encrypted("password"),
 					Email:     "john.smith@faceit.com",
@@ -170,9 +171,9 @@ func TestService_Modify(t *testing.T) {
 			name: "modify nickname & country",
 			args: args{
 				o: userservice.Search().Nickname("johnny123").Country("UK"),
-				u: userservice.User{
-					Firstname: "John",
-					Lastname:  "Smith",
+				u: &user.User{
+					FirstName: "John",
+					LastName:  "Smith",
 					Nickname:  "Johnny123",
 					Password:  encrypted("password"),
 					Email:     "john.smith@faceit.com",
@@ -185,9 +186,9 @@ func TestService_Modify(t *testing.T) {
 			name: "modify by email",
 			args: args{
 				o: userservice.Search().Email("john.smith@faceit.com"),
-				u: userservice.User{
-					Firstname: "John",
-					Lastname:  "Smith",
+				u: &user.User{
+					FirstName: "John",
+					LastName:  "Smith",
 					Nickname:  "Johnny123",
 					Password:  encrypted("password"),
 					Email:     "john.smith@faceit.com",
@@ -213,7 +214,7 @@ func TestService_Modify(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			user := userservice.User{}
+			user := user.User{}
 			require.NoError(t, db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`))
 			require.Equal(t, tt.args.u, user)
 		})
@@ -225,15 +226,15 @@ func TestService_Delete(t *testing.T) {
 		name     string
 		o        *userservice.SearchOptions
 		wantErr  bool
-		wantUser userservice.User
+		wantUser user.User
 	}{
 		{
 			name:    "delete nil searchoptions",
 			o:       nil,
 			wantErr: true,
-			wantUser: userservice.User{
-				Firstname: "John",
-				Lastname:  "Smith",
+			wantUser: user.User{
+				FirstName: "John",
+				LastName:  "Smith",
 				Nickname:  "Johnny123",
 				Password:  encrypted("password"),
 				Email:     "john.smith@faceit.com",
@@ -244,9 +245,9 @@ func TestService_Delete(t *testing.T) {
 			name:    "delete nickname only",
 			o:       userservice.Search().Nickname("johnny123"),
 			wantErr: true,
-			wantUser: userservice.User{
-				Firstname: "John",
-				Lastname:  "Smith",
+			wantUser: user.User{
+				FirstName: "John",
+				LastName:  "Smith",
 				Nickname:  "Johnny123",
 				Password:  encrypted("password"),
 				Email:     "john.smith@faceit.com",
@@ -256,13 +257,13 @@ func TestService_Delete(t *testing.T) {
 		{
 			name:     "delete nickname & country",
 			o:        userservice.Search().Nickname("johnny123").Country("UK"),
-			wantUser: userservice.User{},
+			wantUser: user.User{},
 			wantErr:  false,
 		},
 		{
 			name:     "delete by email",
 			o:        userservice.Search().Email("john.smith@faceit.com"),
-			wantUser: userservice.User{},
+			wantUser: user.User{},
 			wantErr:  false,
 		},
 	}
@@ -283,7 +284,7 @@ func TestService_Delete(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			user := userservice.User{}
+			user := user.User{}
 			err = db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`)
 			if err != nil && strings.Contains(err.Error(), "no rows in result set") {
 				err = nil
@@ -310,10 +311,10 @@ func setup(db *sqlx.DB) error {
 	return err
 }
 
-func testUser() userservice.User {
-	return userservice.User{
-		Firstname: "John",
-		Lastname:  "Smith",
+func testUser() *user.User {
+	return &user.User{
+		FirstName: "John",
+		LastName:  "Smith",
 		Nickname:  "Johnny123",
 		Password:  encrypted("password"),
 		Email:     "john.smith@faceit.com",

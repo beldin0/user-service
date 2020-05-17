@@ -22,7 +22,10 @@ func main() {
 	err := envconfig.Process("", &c)
 	db, err := sqlx.Connect("postgres", c.ConnString())
 	if err != nil {
-		logger.Sugar().With("error", err).Fatal("problem connecting to database")
+		logger.Sugar().
+			With("error", err).
+			With("conenction_string", c.ConnString()).
+			Fatal("problem connecting to database")
 	}
 	server := &http.Server{
 		Addr:    fmt.Sprint(":", defaultPort),

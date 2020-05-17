@@ -15,6 +15,7 @@ type User struct {
 
 func (u User) insert() insertUser {
 	return insertUser{
+		UserID:         &u.UserID,
 		Firstname:      u.Firstname,
 		FirstnameLower: strings.ToLower(u.Firstname),
 		Lastname:       u.Lastname,
@@ -28,6 +29,7 @@ func (u User) insert() insertUser {
 }
 
 type insertUser struct {
+	UserID         *int   `db:"id"`
 	Firstname      string `db:"first_name"`
 	FirstnameLower string `db:"first_name_lower"`
 	Lastname       string `db:"last_name"`

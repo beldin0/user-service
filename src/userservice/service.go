@@ -47,13 +47,9 @@ func (s *Service) Get(o *SearchOptions) ([]User, error) {
 // Modify updates a users details based on the provided SearchOptions
 // The searchoptions must include either an email address or a nickname and country
 // Search terms must match exactly the entries in the existing user row.
-func (s *Service) Modify(o *SearchOptions, u User) error {
-	where, err := o.modify()
-	if err != nil {
-		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
-		return err
-	}
-	_, err = s.db.NamedExec(sqlModify+where, u.insert())
+func (s *Service) Modify(userID int, u User) error {
+	u.UserID = userID
+	_, err := s.db.NamedExec(sqlModify, u.insert())
 	if err != nil {
 		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
 	}
@@ -63,13 +59,8 @@ func (s *Service) Modify(o *SearchOptions, u User) error {
 // Delete deletes a users details based on the provided SearchOptions
 // The searchoptions must include either an email address or a nickname and country
 // Search terms must match exactly the entries in the existing user row.
-func (s *Service) Delete(o *SearchOptions) error {
-	where, err := o.modify()
-	if err != nil {
-		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
-		return err
-	}
-	_, err = s.db.Exec(sqlDelete+where, nil)
+func (s *Service) Delete(userID int) error {
+	_, err := s.db.Exec(sqlDelete, userID)
 	if err != nil {
 		logging.NewLogger().Sugar().With("error", err).Warn("error executing query")
 	}

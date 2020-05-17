@@ -3,8 +3,10 @@ package userhandler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/beldin0/users/src/logging"
@@ -46,15 +48,24 @@ func (h *userHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		With("path", r.URL.Path).
 		With("params", r.URL.RawQuery).
 		Info(r.Method)
+	var id int
+	if r.URL.Path != "/" {
+		var err error
+		id, err = strconv.Atoi(r.URL.Path[1:])
+		if err != nil {
+			http.Error(w, "user id must be a numeric integer", http.StatusBadRequest)
+			return
+		}
+	}
 	switch r.Method {
 	case http.MethodGet:
 		h.Get(w, r)
 	case http.MethodPost:
 		h.Post(w, r)
 	case http.MethodPut:
-		h.Put(w, r)
+		h.Put(id, w, r)
 	case http.MethodDelete:
-		h.Delete(w, r)
+		h.Delete(id, w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -111,17 +122,9 @@ func (h *userHandler) Post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *userHandler) Put(w http.ResponseWriter, r *http.Request) {
-	search, err := buildSearch(r.URL.Query())
-	if err != nil {
-		logging.NewLogger().Sugar().
-			With("error", err).
-			Warn("bad request")
-		http.Error(w, "Request error", http.StatusBadRequest)
-		return
-	}
+func (h *userHandler) Put(id int, w http.ResponseWriter, r *http.Request) {
 	var user userservice.User
-	err = json.NewDecoder(r.Body).Decode(&user)
+	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).
@@ -129,32 +132,24 @@ func (h *userHandler) Put(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unable to decode request body", http.StatusBadRequest)
 		return
 	}
-	err = h.service.Modify(search, user)
+	err = h.service.Modify(id, user)
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).
 			Warn("database error")
-		http.Error(w, "error updating user", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("error updating user %d", id), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *userHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	search, err := buildSearch(r.URL.Query())
-	if err != nil {
-		logging.NewLogger().Sugar().
-			With("error", err).
-			Warn("bad request")
-		http.Error(w, "Request error", http.StatusBadRequest)
-		return
-	}
-	err = h.service.Delete(search)
+func (h *userHandler) Delete(id int, w http.ResponseWriter, r *http.Request) {
+	err := h.service.Delete(id)
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).
 			Warn("database error")
-		http.Error(w, "error deleting user", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("error deleting user %d", id), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

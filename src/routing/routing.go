@@ -2,10 +2,9 @@ package routing
 
 import (
 	"net/http"
-	"path"
-	"strings"
 
 	"github.com/beldin0/users/src/logging"
+	"github.com/beldin0/users/src/routeutils"
 	"github.com/beldin0/users/src/userhandler"
 	"github.com/jmoiron/sqlx"
 )
@@ -26,7 +25,7 @@ func NewRouting(db *sqlx.DB) http.Handler {
 func (h *routing) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	initialPath := r.URL.Path
 	var head string
-	head, r.URL.Path = ShiftPath(r.URL.Path)
+	head, r.URL.Path = routeutils.ShiftPath(r.URL.Path)
 	handler, ok := h.handlerMap[head]
 	if ok {
 		handler.ServeHTTP(w, r)
@@ -34,16 +33,4 @@ func (h *routing) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	logging.NewLogger().Sugar().With("path", initialPath).Info("unable to route incoming request")
 	http.Error(w, "Not Found", http.StatusNotFound)
-}
-
-// ShiftPath splits off the first component of p, which will be cleaned of
-// relative components before processing. head will never contain a slash and
-// tail will always be a rooted path without trailing slash.
-func ShiftPath(p string) (head, tail string) {
-	p = path.Clean("/" + p)
-	i := strings.Index(p[1:], "/") + 1
-	if i <= 0 {
-		return p[1:], "/"
-	}
-	return p[1:i], p[i:]
 }

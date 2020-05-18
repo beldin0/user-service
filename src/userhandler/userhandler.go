@@ -1,17 +1,13 @@
 package userhandler
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
-	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 
 	"github.com/beldin0/users/src/logging"
-	"github.com/beldin0/users/src/user"
+	pb "github.com/beldin0/users/src/user"
 	"github.com/beldin0/users/src/userservice"
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,9 +16,9 @@ type userHandler struct {
 }
 
 // New returns a userHandler instance
-func New(db *sqlx.DB) http.Handler {
+func New(db *sqlx.DB) pb.UserServiceServer {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY,
+		id SERIAL PRIMARY KEY,
 		first_name VARCHAR(50),
 		first_name_lower VARCHAR(50),
 		last_name VARCHAR(50),
@@ -44,143 +40,104 @@ func New(db *sqlx.DB) http.Handler {
 	}
 }
 
-func (h *userHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logging.NewLogger().Sugar().
-		With("path", r.URL.Path).
-		With("params", r.URL.RawQuery).
-		Info(r.Method)
-	var id int
-	if r.URL.Path != "/" {
-		var err error
-		id, err = strconv.Atoi(r.URL.Path[1:])
-		if err != nil {
-			http.Error(w, "user id must be a numeric integer", http.StatusBadRequest)
-			return
-		}
-	}
-	switch r.Method {
-	case http.MethodGet:
-		h.Get(w, r)
-	case http.MethodPost:
-		h.Post(w, r)
-	case http.MethodPut:
-		h.Put(id, w, r)
-	case http.MethodDelete:
-		h.Delete(id, w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func (h *userHandler) Get(w http.ResponseWriter, r *http.Request) {
-	search, err := buildSearch(r.URL.Query())
-	if err != nil {
-		logging.NewLogger().Sugar().
-			With("error", err).
-			Warn("bad request")
-		http.Error(w, "Request error", http.StatusBadRequest)
-		return
-	}
-	users, err := h.service.Get(search)
-	if err != nil {
-		logging.NewLogger().Sugar().
-			With("error", err).
-			Warn("server error")
-		http.Error(w, "Server error", http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(users)
-}
-
-func (h *userHandler) Post(w http.ResponseWriter, r *http.Request) {
-	var user *user.User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		logging.NewLogger().Sugar().
-			With("error", err).
-			Warn("bad request")
-		http.Error(w, "unable to decode request body", http.StatusBadRequest)
-		return
-	}
-	err = h.service.Add(user)
-	if errors.As(err, &userservice.ErrDuplicate) {
+func (h *userHandler) Add(ctx context.Context, user *pb.User) (*pb.User, error) {
+	err := h.service.Add(user)
+	if errors.Is(err, userservice.ErrDuplicate) {
 		logging.NewLogger().Sugar().
 			With("error", err).
 			Info("duplicate user add request")
-		http.Error(w, "user already exists", http.StatusBadRequest)
-		return
+		return nil, err
 	}
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).
 			Warn("database error")
-		http.Error(w, "error inserting into database", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 	logging.NewLogger().Sugar().
 		With("user", user).
 		Info("user added")
-	w.WriteHeader(http.StatusCreated)
+	return user, nil
 }
 
-func (h *userHandler) Put(id int, w http.ResponseWriter, r *http.Request) {
-	user := &user.User{}
-	err := json.NewDecoder(r.Body).Decode(&user)
+func (h *userHandler) Search(ctx context.Context, user *pb.User) (*pb.UsersResponse, error) {
+	search, err := buildSearch(user)
 	if err != nil {
 		logging.NewLogger().Sugar().
+			With("user", user).
 			With("error", err).
-			Warn("bad request")
-		http.Error(w, "unable to decode request body", http.StatusBadRequest)
-		return
+			Warn("error building search")
+		return nil, err
 	}
-	err = h.service.Modify(int32(id), user)
+	users, err := h.service.Get(search)
+	if err != nil {
+		logging.NewLogger().Sugar().
+			With("user", user).
+			With("error", err).
+			Warn("error executing search")
+		return nil, err
+	}
+	return &pb.UsersResponse{Users: users}, err
+}
+
+func (h *userHandler) Delete(ctx context.Context, id *pb.UserId) (*empty.Empty, error) {
+	err := h.service.Delete(id.Id)
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).
 			Warn("database error")
-		http.Error(w, fmt.Sprintf("error updating user %d", id), http.StatusInternalServerError)
-		return
 	}
-	w.WriteHeader(http.StatusOK)
+	return nil, err
 }
 
-func (h *userHandler) Delete(id int, w http.ResponseWriter, r *http.Request) {
-	err := h.service.Delete(id)
+func (h *userHandler) Get(ctx context.Context, id *pb.UserId) (*pb.User, error) {
+	user, err := h.service.Get(userservice.Get(id.Id))
+	if err != nil {
+		logging.NewLogger().Sugar().
+			With("id", id.Id).
+			With("error", err).
+			Warn("server error")
+		return nil, err
+	}
+	return user[0], err
+}
+
+func (h *userHandler) Modify(ctx context.Context, user *pb.User) (*pb.User, error) {
+	err := h.service.Modify(user.Id, user)
 	if err != nil {
 		logging.NewLogger().Sugar().
 			With("error", err).
 			Warn("database error")
-		http.Error(w, fmt.Sprintf("error deleting user %d", id), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
-	w.WriteHeader(http.StatusOK)
+	return user, err
 }
 
-func buildSearch(params url.Values) (*userservice.SearchOptions, error) {
+func buildSearch(user *pb.User) (*userservice.SearchOptions, error) {
 	search := userservice.Search()
-	for key := range params {
-		switch key {
-		case "country":
-			search.Country(params.Get(key))
-		case "email":
-			search.Email(params.Get(key))
-		case "nickname":
-			search.Nickname(params.Get(key))
-		case "name":
-			value, err := url.QueryUnescape(params.Get(key))
-			if err != nil {
-				return search, err
-			}
-			names := strings.Split(value, " ")
-			if len(names) < 2 {
-				return search, err
-			}
-			search.Name(names[0], names[len(names)-1])
-		default:
-			logging.NewLogger().Sugar().
-				With("query_parameter", key).
-				Info("unrecognised query parameter")
-		}
+	var filters bool
+	if user.Country != "" {
+		search.Country(user.Country)
+		filters = true
+	}
+	if user.Email != "" {
+		search.Email(user.Email)
+		filters = true
+	}
+	if user.Nickname != "" {
+		search.Nickname(user.Nickname)
+		filters = true
+	}
+	if user.FirstName != "" {
+		search.FirstName(user.FirstName)
+		filters = true
+	}
+	if user.LastName != "" {
+		search.LastName(user.LastName)
+		filters = true
+	}
+	if !filters {
+		return nil, errors.New("no search parameters provided")
 	}
 	return search, nil
 }

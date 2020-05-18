@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,13 +9,16 @@ import (
 	"syscall"
 
 	"github.com/beldin0/users/src/logging"
-	"github.com/beldin0/users/src/routing"
+	pb "github.com/beldin0/users/src/user"
+	"github.com/beldin0/users/src/userhandler"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jmoiron/sqlx"
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
 )
 
 const defaultPort = 8080
+const grpcPort = 9000
 
 func main() {
 	logger := logging.NewLogger()
@@ -24,23 +28,39 @@ func main() {
 	if err != nil {
 		logger.Sugar().
 			With("error", err).
-			With("conenction_string", c.ConnString()).
+			With("connection_string", c.ConnString()).
 			Fatal("problem connecting to database")
 	}
+
+	if run(db) != http.ErrServerClosed {
+		logger.Sugar().With("error", err).Fatal("problem with server")
+	}
+}
+
+func run(db *sqlx.DB) error {
+	logger := logging.NewLogger()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	mux := runtime.NewServeMux()
+	err := pb.RegisterUserServiceHandlerServer(ctx, mux, userhandler.New(db))
+	if err != nil {
+		return err
+	}
+
 	server := &http.Server{
 		Addr:    fmt.Sprint(":", defaultPort),
-		Handler: routing.NewRouting(db),
+		Handler: mux,
 	}
 
 	// Prepare for graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	go gracefulShutdown(quit, server)
+	go gracefulShutdown(quit, server.Shutdown)
 
 	// Start server
-	logger.Sugar().With("port", defaultPort).Info("listening")
-	err = server.ListenAndServe()
-	if err != http.ErrServerClosed {
-		logger.Sugar().With("error", err).Fatal("problem with server")
-	}
+	logger.Sugar().With("port", defaultPort).Info("listening http")
+	logger.Sugar().With("port", grpcPort).Info("listening grpc")
+	return server.ListenAndServe()
 }

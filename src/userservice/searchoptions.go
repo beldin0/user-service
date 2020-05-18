@@ -8,13 +8,24 @@ import (
 
 // SearchOptions provides the means of searching for one or many users
 type SearchOptions struct {
-	options map[string]string
+	options     map[string]string
+	searchExact bool
 }
 
 // Search begins a new search
 func Search() *SearchOptions {
 	return &SearchOptions{
 		options: make(map[string]string),
+	}
+}
+
+// Get creates a SearchOptions for obtaining a user by ID
+func Get(id int32) *SearchOptions {
+	return &SearchOptions{
+		options: map[string]string{
+			"id": fmt.Sprintf("%d", id),
+		},
+		searchExact: true,
 	}
 }
 
@@ -36,14 +47,22 @@ func (o *SearchOptions) Nickname(nickname string) *SearchOptions {
 	return o
 }
 
-// Name adds the specified first name and last name to the search parameters
-func (o *SearchOptions) Name(first, last string) *SearchOptions {
+// FirstName adds the specified first name to the search parameters
+func (o *SearchOptions) FirstName(first string) *SearchOptions {
 	o.options["first_name_lower"] = strings.ToLower(first)
+	return o
+}
+
+// LastName adds the specified last name to the search parameters
+func (o *SearchOptions) LastName(last string) *SearchOptions {
 	o.options["last_name_lower"] = strings.ToLower(last)
 	return o
 }
 
 func (o *SearchOptions) where() string {
+	if o.searchExact {
+		return o.whereExact()
+	}
 	if o == nil || len(o.options) == 0 {
 		return ""
 	}

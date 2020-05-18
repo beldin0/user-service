@@ -23,9 +23,10 @@ VALUES
 	:password,
 	:email,
 	:country
-);`
+)
+RETURNING id;`
 
-const sqlGet = `SELECT first_name, last_name, nickname, password, email, country FROM users`
+const sqlGet = `SELECT id, first_name, last_name, nickname, password, email, country FROM users`
 
 const sqlModify = `UPDATE users SET
 	first_name=:first_name,

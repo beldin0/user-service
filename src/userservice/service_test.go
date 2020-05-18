@@ -38,7 +38,7 @@ func TestService_Add(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			user := user.User{}
+			user := &user.User{}
 			require.NoError(t, db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`))
 			require.Equal(t, tt.u, user)
 		})
@@ -82,7 +82,7 @@ func TestService_Get(t *testing.T) {
 		},
 		{
 			name:    "search by name",
-			opts:    userservice.Search().Name("john", "smith"),
+			opts:    userservice.Search().FirstName("john").LastName("smith"),
 			want:    []*user.User{testUser()},
 			wantErr: false,
 		},
@@ -214,7 +214,7 @@ func TestService_Modify(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			user := user.User{}
+			user := &user.User{}
 			require.NoError(t, db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`))
 			require.Equal(t, tt.args.u, user)
 		})
@@ -226,13 +226,13 @@ func TestService_Delete(t *testing.T) {
 		name     string
 		o        *userservice.SearchOptions
 		wantErr  bool
-		wantUser user.User
+		wantUser *user.User
 	}{
 		{
 			name:    "delete nil searchoptions",
 			o:       nil,
 			wantErr: true,
-			wantUser: user.User{
+			wantUser: &user.User{
 				FirstName: "John",
 				LastName:  "Smith",
 				Nickname:  "Johnny123",
@@ -245,7 +245,7 @@ func TestService_Delete(t *testing.T) {
 			name:    "delete nickname only",
 			o:       userservice.Search().Nickname("johnny123"),
 			wantErr: true,
-			wantUser: user.User{
+			wantUser: &user.User{
 				FirstName: "John",
 				LastName:  "Smith",
 				Nickname:  "Johnny123",
@@ -257,13 +257,13 @@ func TestService_Delete(t *testing.T) {
 		{
 			name:     "delete nickname & country",
 			o:        userservice.Search().Nickname("johnny123").Country("UK"),
-			wantUser: user.User{},
+			wantUser: &user.User{},
 			wantErr:  false,
 		},
 		{
 			name:     "delete by email",
 			o:        userservice.Search().Email("john.smith@faceit.com"),
-			wantUser: user.User{},
+			wantUser: &user.User{},
 			wantErr:  false,
 		},
 	}
@@ -284,7 +284,7 @@ func TestService_Delete(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			user := user.User{}
+			user := &user.User{}
 			err = db.Get(&user, `SELECT first_name, last_name, nickname, password, email, country FROM users`)
 			if err != nil && strings.Contains(err.Error(), "no rows in result set") {
 				err = nil

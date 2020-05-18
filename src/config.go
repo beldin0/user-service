@@ -3,12 +3,12 @@ package main
 import "fmt"
 
 type config struct {
-	Host     string `envconfig:"PG_HOST" default:"db"`
-	Port     int    `envconfig:"PG_PORT" default:"5432"`
-	User     string `envconfig:"PG_USER" default:"postgres"`
-	Password string `envconfig:"PG_PASSWORD" default:"password"`
-	DBName   string `envconfig:"PG_DB_NAME" default:"postgres"`
-	SSLMode  bool   `envconfig:"PG_SSLMODE"`
+	Host     string `envconfig:"POSTGRES_HOST" default:"db"`
+	Port     int    `envconfig:"POSTGRES_PORT" default:"5432"`
+	User     string `envconfig:"POSTGRES_USER" default:"postgres"`
+	Password string `envconfig:"POSTGRES_PASSWORD" default:"password"`
+	DBName   string `envconfig:"POSTGRES_DB_NAME" default:"postgres"`
+	SSLMode  bool   `envconfig:"POSTGRES_SSLMODE"`
 }
 
 func (c config) ConnString() string {

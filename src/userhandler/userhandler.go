@@ -87,7 +87,7 @@ func (h *userHandler) Delete(ctx context.Context, id *pb.UserId) (*empty.Empty, 
 			With("error", err).
 			Warn("database error")
 	}
-	return nil, err
+	return &empty.Empty{}, err
 }
 
 func (h *userHandler) Get(ctx context.Context, id *pb.UserId) (*pb.User, error) {

@@ -32,16 +32,16 @@ func main() {
 			Fatal("problem connecting to database")
 	}
 
-	if run(db) != http.ErrServerClosed {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if run(ctx, db) != http.ErrServerClosed {
 		logger.Sugar().With("error", err).Fatal("problem with server")
 	}
 }
 
-func run(db *sqlx.DB) error {
+func run(ctx context.Context, db *sqlx.DB) error {
 	logger := logging.NewLogger()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	mux := runtime.NewServeMux()
 	err := pb.RegisterUserServiceHandlerServer(ctx, mux, userhandler.New(db))
@@ -57,7 +57,7 @@ func run(db *sqlx.DB) error {
 	// Prepare for graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	go gracefulShutdown(quit, server.Shutdown)
+	go gracefulShutdown(ctx, quit, server.Shutdown)
 
 	// Start server
 	logger.Sugar().With("port", defaultPort).Info("listening http")

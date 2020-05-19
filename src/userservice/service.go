@@ -73,7 +73,6 @@ func (s *Service) Get(o *SearchOptions) ([]*user.User, error) {
 	}
 	logging.NewLogger().Sugar().
 		With("function", "get").
-		With("query", query).
 		With("results", len(results)).
 		Info("returning results")
 	return results, err

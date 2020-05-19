@@ -99,7 +99,10 @@ func (h *userHandler) Get(ctx context.Context, id *pb.UserId) (*pb.User, error) 
 			Warn("server error")
 		return nil, err
 	}
-	return user[0], err
+	if len(user) == 0 {
+		return &pb.User{}, nil
+	}
+	return user[0], nil
 }
 
 func (h *userHandler) Modify(ctx context.Context, user *pb.User) (*pb.User, error) {
